@@ -11,6 +11,8 @@ PyGObject = "^3.42.2"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.15.2"
+flake8 = "^5.0.4"
+mypy = "^0.971"
 
 
 [build-system]

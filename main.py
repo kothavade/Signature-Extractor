@@ -1,25 +1,26 @@
+from distutils.command.config import config
 import cv2 as cv
 import numpy as np
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GdkPixbuf
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf, Gtk
 
 
-def select_dialog() -> cv.Mat:
+def select_dialog() -> str:
     """Select image from file."""
+    # TODO: add cancel handling
     dialog = Gtk.FileChooserDialog(
         "Choose an image of your signature",
         None,
         Gtk.FileChooserAction.OPEN,
         (
-            Gtk.STOCK_CANCEL,
-            Gtk.ResponseType.CANCEL,
             Gtk.STOCK_OPEN,
             Gtk.ResponseType.OK,
         ),
     )
-    # only show png files
+    # Only show png files
     filter_image = Gtk.FileFilter()
     filter_image.set_name("Image files")
     filter_image.add_mime_type("image/png")
@@ -29,17 +30,17 @@ def select_dialog() -> cv.Mat:
     response = dialog.run()
     if response == Gtk.ResponseType.CANCEL:
         dialog.destroy()
-        return
-        # TODO: better cancel handling
-    img = dialog.get_filename()
-    ocv_img = cv.imread(img)
+        select_dialog()
+    img: str = dialog.get_filename()
     dialog.destroy()
-    return img, ocv_img
+    return img
 
 
 def save_signature(ocv_img) -> None:
-    """Save signature to file."""
+    """Save transparent signature to file of user's choosing."""
+    # Check if Transparent Image is Empty
     if ocv_img is not None:
+        # Create Save Dialog
         dialog = Gtk.FileChooserDialog(
             "Choose a location to save your signature",
             None,
@@ -51,29 +52,44 @@ def save_signature(ocv_img) -> None:
                 Gtk.ResponseType.OK,
             ),
         )
+        # Default file name
         dialog.set_filename("signature.png")
+
         response = dialog.run()
+
         if response == Gtk.ResponseType.OK:
             cv.imwrite(dialog.get_filename(), ocv_img)
-        dialog.destroy()
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            cv.imwrite(dialog.get_filename(), ocv_img)
+        elif response == Gtk.ResponseType.CANCEL:
+            print("Cancel clicked")
+
         dialog.destroy()
 
 
-def open_image(og_window, ocv_window) -> cv.Mat:
+def open_image(
+    og_window: Gtk.ScrolledWindow, ocv_window: Gtk.ScrolledWindow, method: str
+) -> cv.Mat:
     """Open image from file."""
-    og_img, ocv_og_img = select_dialog()
-    ocv_img = extract_signature(ocv_og_img)
+    # Get Original Image
+    og_img = select_dialog()
+
+    # Convert to Transparent OpenCV Image
+    ocv_img = extract_signature(cv.imread(og_img), method)
+
+    # Convert Original and Transparent Images to GTK Images
     gtk_ocv_img = ocv_to_gtk(ocv_img)
-    gtk_og_img = img_to_gtk(og_img)
+    gtk_og_img = img_path_to_gtk(og_img)
+
+    # Add GTK Images to Respective Windows
     og_window.add(gtk_og_img)
     ocv_window.add(gtk_ocv_img)
     return ocv_img
 
+def set_image(
+    og_window: Gtk.ScrolledWindow, ocv_window: Gtk.ScrolledWindow, method: str
+) -> None:
+    """Set images to windows."""
 
-def ocv_to_gtk(ocv_img):
+def ocv_to_gtk(ocv_img) -> Gtk.Image:
     """Convert OpenCV image to GTK image."""
     height, width, channels = ocv_img.shape
     return Gtk.Image.new_from_pixbuf(
@@ -89,9 +105,43 @@ def ocv_to_gtk(ocv_img):
     )
 
 
-def img_to_gtk(img):
-    """Convert image to GTK image."""
-    return Gtk.Image.new_from_file(img)
+def img_path_to_gtk(img_path: str) -> Gtk.Image:
+    """Convert image path to GTK image."""
+    return Gtk.Image.new_from_file(img_path)
+
+
+def method_config() -> str:
+    """Allow user to pick extraction method."""
+    dialog = Gtk.Dialog(
+        "Choose an extraction method",
+        None,
+        Gtk.DialogFlags.MODAL,
+        (
+            Gtk.STOCK_CANCEL,
+            Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OK,
+            Gtk.ResponseType.OK,
+        ),
+    )
+    dialog.set_default_size(300, 100)
+
+    # Create Radio Buttons
+    radio_binary = Gtk.RadioButton.new_with_label_from_widget(None, "Binary")
+    radio_adaptive = Gtk.RadioButton.new_with_label_from_widget(
+        radio_binary, "Adaptive"
+    )
+
+    # Add Radio Buttons to Dialog
+    dialog.vbox.pack_start(radio_binary, True, True, 0)
+    dialog.vbox.pack_start(radio_adaptive, True, True, 0)
+
+    dialog.show_all()
+    response = dialog.run()
+    if response == Gtk.ResponseType.OK:
+        if radio_binary.get_active():
+            return "binary"
+        elif radio_adaptive.get_active():
+            return "adaptive"
 
 
 def main():
@@ -104,34 +154,37 @@ def main():
     window.connect("destroy", Gtk.main_quit)
 
     og_window = Gtk.ScrolledWindow()
-    og_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
     ocv_window = Gtk.ScrolledWindow()
-    ocv_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-    ocv_img = open_image(og_window, ocv_window)
+    ocv_img = open_image(og_window, ocv_window, "binary")
 
     headerbar = Gtk.HeaderBar()
     headerbar.set_show_close_button(True)
 
+    config_button = Gtk.Button()
+    config_button.set_label("Config")
+    config_button.connect(
+        "clicked", lambda x: open_image(og_window, ocv_window, method_config())
+    )
+
     open_button = Gtk.Button()
-    open_button.set_label(" Open")
+    open_button.set_label("Open")
     open_button.set_image(
         Gtk.Image.new_from_icon_name("document-open", Gtk.IconSize.BUTTON)
     )
-    open_button.set_always_show_image(True)
     # open_button.connect("clicked", lambda _: open_image(imagewindow))
 
     download_button = Gtk.Button()
-    download_button.set_label(" Save")
+    download_button.set_label("Save")
     download_button.set_image(
         Gtk.Image.new_from_icon_name("document-save", Gtk.IconSize.BUTTON)
     )
-    download_button.set_always_show_image(True)
     download_button.connect("clicked", lambda _: save_signature(ocv_img))
 
     headerbar.pack_end(download_button)
     headerbar.pack_end(open_button)
+    headerbar.pack_end(config_button)
     headerbar.props.title = "Signature Extractor"
     window.set_titlebar(headerbar)
 
@@ -146,21 +199,24 @@ def main():
     stack_switcher.set_stack(stack)
     stack_switcher.set_halign(Gtk.Align.CENTER)
 
-    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-    box.pack_start(stack_switcher, True, True, 0)
-    box.pack_start(stack, True, True, 0)
+    # set stack switcher to headerbar
+    headerbar.pack_start(stack_switcher)
 
-    window.add(box)
-
+    window.add(stack)
     window.show_all()
     Gtk.main()
 
 
-def extract_signature(image):
+def extract_signature(image, method="binary"):
     """Extract signature from image."""
     grayscale = cv.cvtColor(image, cv.COLOR_BGR2GRAY)  # convert to grayscale
-    _, binary = cv.threshold(grayscale, 127, 255, cv.THRESH_BINARY)  # convert to binary
-    rgba = cv.cvtColor(binary, cv.COLOR_GRAY2RGBA)  # convert to RGBA
+    if method == "binary":
+        _, converted = cv.threshold(grayscale, 127, 255, cv.THRESH_BINARY)
+    elif method == "adaptive":
+        converted = cv.adaptiveThreshold(
+            grayscale, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2
+        )
+    rgba = cv.cvtColor(converted, cv.COLOR_GRAY2RGBA)  # convert to RGBA
     rgba[np.where((rgba == [255, 255, 255, 255]).all(axis=2))] = [
         0,
         0,
