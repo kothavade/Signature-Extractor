@@ -1,7 +1,6 @@
-from distutils.command.config import config
 import cv2 as cv
-import numpy as np
 import gi
+import numpy as np
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -84,10 +83,12 @@ def open_image(
     ocv_window.add(gtk_ocv_img)
     return ocv_img
 
+
 def set_image(
     og_window: Gtk.ScrolledWindow, ocv_window: Gtk.ScrolledWindow, method: str
 ) -> None:
     """Set images to windows."""
+
 
 def ocv_to_gtk(ocv_img) -> Gtk.Image:
     """Convert OpenCV image to GTK image."""
@@ -162,17 +163,17 @@ def main():
     headerbar = Gtk.HeaderBar()
     headerbar.set_show_close_button(True)
 
-    config_button = Gtk.Button()
-    config_button.set_label("Config")
-    config_button.connect(
-        "clicked", lambda x: open_image(og_window, ocv_window, method_config())
-    )
+    # config_button = Gtk.Button()
+    # config_button.set_label("Config")
+    # config_button.connect(
+    #     "clicked", lambda x: open_image(og_window, ocv_window, method_config())
+    # )
 
-    open_button = Gtk.Button()
-    open_button.set_label("Open")
-    open_button.set_image(
-        Gtk.Image.new_from_icon_name("document-open", Gtk.IconSize.BUTTON)
-    )
+    # open_button = Gtk.Button()
+    # open_button.set_label("Open")
+    # open_button.set_image(
+    #     Gtk.Image.new_from_icon_name("document-open", Gtk.IconSize.BUTTON)
+    # )
     # open_button.connect("clicked", lambda _: open_image(imagewindow))
 
     download_button = Gtk.Button()
@@ -183,8 +184,8 @@ def main():
     download_button.connect("clicked", lambda _: save_signature(ocv_img))
 
     headerbar.pack_end(download_button)
-    headerbar.pack_end(open_button)
-    headerbar.pack_end(config_button)
+    # headerbar.pack_end(open_button)
+    # headerbar.pack_end(config_button)
     headerbar.props.title = "Signature Extractor"
     window.set_titlebar(headerbar)
 
