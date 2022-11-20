@@ -31,12 +31,15 @@ def select_dialog() -> str:
     if response == Gtk.ResponseType.CANCEL:
         dialog.destroy()
         sys.exit(0)
-    img: str = dialog.get_filename()
+    filename = dialog.get_filename()
+    if filename is None:
+        dialog.destroy()
+        sys.exit(0)
     dialog.destroy()
-    return img
+    return filename
 
 
-def config_dialog() -> str:
+def config_dialog(current_method: str) -> str:
     """Allow user to pick extraction method."""
     dialog = Gtk.Dialog(
         "Choose an extraction method",
@@ -51,44 +54,40 @@ def config_dialog() -> str:
     )
     dialog.set_default_size(300, 100)
 
-    # radio group
-    radio_buttons = ["binary", "adaptive", "otsu", "canny", "sobel", "laplacian"]
-    for radio_button in radio_buttons:
-        radio_button = Gtk.RadioButton.new_with_label_from_widget(
-            None, radio_button.capitalize()
-        )
-        dialog.vbox.pack_start(radio_button, True, True, 0)
+    methods = ["binary", "adaptive", "otsu", "canny", "sobel", "laplacian"]
+    radio_group = None
+    for method in methods:
+        radio = Gtk.RadioButton.new_with_label_from_widget(radio_group, method.capitalize())
+        radio_group = radio
+        if method == current_method:
+            radio.set_active(True)
+        dialog.vbox.pack_start(radio, True, True, 0)
 
     dialog.show_all()
     response = dialog.run()
     if response == Gtk.ResponseType.OK:
-        for radio_button in radio_buttons:
-            if radio_button.get_active():
-                method = radio_button.get_label().lower()
-    else:
-        method = "binary"
-    return method
+        for radio in radio_group.get_group():
+            if radio.get_active():
+                current_method = radio.get_label().lower()
+    dialog.destroy()
+    return current_method
 
 
-def save_dialog(img: Gtk.Image) -> None:
+def save_dialog(pixbuf: GdkPixbuf.Pixbuf) -> None:
     """Save transparent signature to file of user's choosing."""
-    if img is not None:
-        dialog = Gtk.FileChooserDialog(
-            "Choose a location to save your signature",
-            None,
-            Gtk.FileChooserAction.SAVE,
-            (
-                Gtk.STOCK_CANCEL,
-                Gtk.ResponseType.CANCEL,
-                Gtk.STOCK_SAVE,
-                Gtk.ResponseType.OK,
-            ),
-        )
-        dialog.set_filename("transparent_signature.png")
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            img.get_pixbuf().savev(dialog.get_filename(), "png", [], [])
-        elif response == Gtk.ResponseType.CANCEL:
-            print("Cancel clicked")
-
-        dialog.destroy()
+    dialog = Gtk.FileChooserDialog(
+        "Choose a location to save your signature",
+        None,
+        Gtk.FileChooserAction.SAVE,
+        (
+            Gtk.STOCK_CANCEL,
+            Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_SAVE,
+            Gtk.ResponseType.OK,
+        ),
+    )
+    dialog.set_filename("transparent_signature.png")
+    response = dialog.run()
+    if response == Gtk.ResponseType.OK:
+        pixbuf.savev(dialog.get_filename(), "png", [], [])
+    dialog.destroy()

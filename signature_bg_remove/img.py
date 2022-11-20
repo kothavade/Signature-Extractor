@@ -28,7 +28,7 @@ def extract_signature(image, method="binary"):
     return rgba
 
 
-def binary(grayscale) -> cv.Mat:
+def binary(grayscale) -> np.ndarray:
     """Convert grayscale image to binary."""
     _, converted = cv.threshold(grayscale, 127, 255, cv.THRESH_BINARY)
     return converted
