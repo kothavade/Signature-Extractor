@@ -1,19 +1,24 @@
 [tool.poetry]
-name = "smartsignatures"
+name = "signature_bg_remove"
 version = "0.1.0"
 description = ""
 authors = ["Ved Kothavade <kothavade.ved@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-opencv-python = "^4.6.0"
 PyGObject = "^3.42.2"
+opencv-python-headless = "^4.6.0.66"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.15.2"
 flake8 = "^5.0.4"
 mypy = "^0.971"
 
+
+[tool.poetry.group.dev.dependencies]
+pygobject-stubs = "^1.0.0"
+gi-docgen = "^2022.2"
+gengir = "^1.0.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
