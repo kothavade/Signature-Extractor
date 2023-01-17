@@ -1,4 +1,3 @@
-import cv2 as cv
 import gi
 import gui
 import img
@@ -6,7 +5,7 @@ import utils
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf, Gtk
+from gi.repository import Gtk
 
 
 def load() -> None:

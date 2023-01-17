@@ -28,6 +28,19 @@ def extract_signature(image, method="binary"):
     return rgba
 
 
+def invert(image) -> np.ndarray:
+    """Invert image."""
+    return cv.bitwise_not(image)
+
+
+def fill(image) -> np.ndarray:
+    """Fill area within signature."""
+    contours, _ = cv.findContours(image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=cv.contourArea, reverse=True)[1:]
+    cv.drawContours(image, contours, 0, 0, -1)
+    return image
+
+
 def binary(grayscale) -> np.ndarray:
     """Convert grayscale image to binary."""
     _, converted = cv.threshold(grayscale, 127, 255, cv.THRESH_BINARY)
@@ -50,18 +63,18 @@ def canny(grayscale) -> cv.Mat:
     """Convert grayscale image to binary using Canny edge detection."""
     edges = cv.Canny(grayscale, 100, 200)
     _, converted = cv.threshold(edges, 127, 255, cv.THRESH_BINARY)
-    return converted
+    return fill(invert(converted))
 
 
 def sobel(grayscale) -> cv.Mat:
     """Convert grayscale image to binary using Sobel edge detection."""
     edges = cv.Sobel(grayscale, cv.CV_8U, 1, 0, ksize=3)
     _, converted = cv.threshold(edges, 127, 255, cv.THRESH_BINARY)
-    return converted
+    return fill(invert(converted))
 
 
 def laplacian(grayscale) -> cv.Mat:
     """Convert grayscale image to binary using Laplacian edge detection."""
     edges = cv.Laplacian(grayscale, cv.CV_8U, ksize=3)
     _, converted = cv.threshold(edges, 127, 255, cv.THRESH_BINARY)
-    return converted
+    return fill(invert(converted))
